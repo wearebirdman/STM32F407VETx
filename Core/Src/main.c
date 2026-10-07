@@ -27,12 +27,12 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "bl_jump.h"
+#include "bl_param.h"
+#include "bl_update_uart.h"
 #include "key.h"
 #include "lcd.h"
 #include "led.h"
-#include "bl_param.h"
-#include "bl_jump.h"
-#include "bl_update_uart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -74,8 +74,8 @@ void SystemClock_Config(void);
 #define UI_BAR_W    112
 #define UI_BAR_H    10
 
-static KeyMsg_t s_key_msg;
-static uint32_t s_bl_cmd;
+static KeyMsg_t s_KeyMsg;
+static uint32_t s_BlCmd;
 
 /* 主菜单界面 */
 static void Menu_Show(void)
@@ -119,22 +119,22 @@ static const char *Bl_ResultStr(BlUpdStatus_t st)
 {
     switch (st)
     {
-        case BL_UPD_OK:           return "Upgrade OK";
-        case BL_UPD_ERR_OPEN:     return "ERR: open source";
-        case BL_UPD_ERR_HEADER:   return "ERR: bad header";
-        case BL_UPD_ERR_SIZE:     return "ERR: size";
-        case BL_UPD_ERR_CRC:      return "ERR: CRC";
-        case BL_UPD_ERR_FLASH:    return "ERR: flash";
-        case BL_UPD_ERR_ABORT:    return "ERR: aborted";
-        case BL_UPD_ERR_TIMEOUT:  return "ERR: timeout";
-        case BL_UPD_ERR_PROTO:    return "ERR: protocol";
-        case BL_UPD_ERR_PARAM:    return "ERR: param";
-        default:                  return "ERR: unknown";
+    case BL_UPD_OK:           return "Upgrade OK";
+    case BL_UPD_ERR_OPEN:     return "ERR: open source";
+    case BL_UPD_ERR_HEADER:   return "ERR: bad header";
+    case BL_UPD_ERR_SIZE:     return "ERR: size";
+    case BL_UPD_ERR_CRC:      return "ERR: CRC";
+    case BL_UPD_ERR_FLASH:    return "ERR: flash";
+    case BL_UPD_ERR_ABORT:    return "ERR: aborted";
+    case BL_UPD_ERR_TIMEOUT:  return "ERR: timeout";
+    case BL_UPD_ERR_PROTO:    return "ERR: protocol";
+    case BL_UPD_ERR_PARAM:    return "ERR: param";
+    default:                  return "ERR: unknown";
     }
 }
 
 /* 结果界面：成功绿色SUCCESS，失败红色FAILED+原因 */
-static void Show_Result(BlUpdStatus_t st, const char *title)
+static void Menu_ShowResult(BlUpdStatus_t st, const char *title)
 {
     uint16_t fg = (st == BL_UPD_OK) ? LCD_GREEN : LCD_RED;
     Lcd_Clear(LCD_BLACK);
@@ -148,13 +148,12 @@ static void Show_Result(BlUpdStatus_t st, const char *title)
 }
 
 /* 等待指定按键短按 */
-static void Wait_Key(uint8_t id)
+static void Menu_WaitKey(uint8_t id)
 {
-    KeyMsg_t m;
     for (;;)
     {
-        m = Key_Scan();
-        if ((m.key_id == id) && (m.event == KEY_EVENT_SHORT_PRESS))
+        KeyMsg_t key_msg = Key_Scan();
+        if ((key_msg.key_id == id) && (key_msg.event == KEY_EVENT_SHORT_PRESS))
             break;
         HAL_Delay(10);
     }
@@ -202,8 +201,8 @@ int main(void)
   Lcd_Init();
 
   /* 读参数区命令字：无升级命令且APP有效则直接跳转 */
-  BlParam_ReadCmd(&s_bl_cmd);
-  if ((s_bl_cmd == BL_CMD_NONE) && Bl_AppValid())
+  BlParam_ReadCmd(&s_BlCmd);
+  if ((s_BlCmd == BL_CMD_NONE) && Bl_AppValid())
   {
       Bl_JumpToApp();
   }
@@ -217,43 +216,43 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    s_key_msg = Key_Scan();
-    switch (s_key_msg.key_id)
+    s_KeyMsg = Key_Scan();
+    switch (s_KeyMsg.key_id)
     {
-      case KEY_WK_ID:
-        if (s_key_msg.event == KEY_EVENT_SHORT_PRESS)
+    case KEY_WK_ID:
+        if (s_KeyMsg.event == KEY_EVENT_SHORT_PRESS)
         {
-          if (Bl_AppValid())
-            Bl_JumpToApp();
-          else
-            Lcd_Printf(10, 130, LCD_WHITE, LCD_BLACK, 12, "No valid APP");
-        }
-        break;
-      case KEY_1_ID:
-        if (s_key_msg.event == KEY_EVENT_SHORT_PRESS)
-        {
-          BlUpdStatus_t st;
-          Lcd_Clear(LCD_BLACK);
-          Lcd_ShowString(UI_TX, UI_TY, "UART Firmware", LCD_YELLOW, LCD_BLACK, 16);
-          Lcd_ShowString(10, 40, "Send FW.BIN via", LCD_GRAY, LCD_BLACK, 12);
-          Lcd_ShowString(10, 56, "KEY1 : Give Up", LCD_WHITE, LCD_BLACK, 12);
-          st = Bl_UpdateUartStart(Bl_Prog, 0);
-          if (st == BL_UPD_OK)
-          {
-            Show_Result(st, "UART Firmware");
-            HAL_Delay(500);
             if (Bl_AppValid())
-              Bl_JumpToApp();
-          }
-          else
-          {
-            Show_Result(st, "UART Firmware");
-            Wait_Key(KEY_1_ID);
-            Menu_Show();
-          }
+                Bl_JumpToApp();
+            else
+                Lcd_Printf(10, 130, LCD_WHITE, LCD_BLACK, 12, "No valid APP");
         }
         break;
-      default:
+    case KEY_1_ID:
+        if (s_KeyMsg.event == KEY_EVENT_SHORT_PRESS)
+        {
+            BlUpdStatus_t st;
+            Lcd_Clear(LCD_BLACK);
+            Lcd_ShowString(UI_TX, UI_TY, "UART Firmware", LCD_YELLOW, LCD_BLACK, 16);
+            Lcd_ShowString(10, 40, "Send FW.BIN via", LCD_GRAY, LCD_BLACK, 12);
+            Lcd_ShowString(10, 56, "KEY1 : Give Up", LCD_WHITE, LCD_BLACK, 12);
+            st = Bl_UpdateUartStart(Bl_Prog, NULL);
+            if (st == BL_UPD_OK)
+            {
+                Menu_ShowResult(st, "UART Firmware");
+                HAL_Delay(500);
+                if (Bl_AppValid())
+                    Bl_JumpToApp();
+            }
+            else
+            {
+                Menu_ShowResult(st, "UART Firmware");
+                Menu_WaitKey(KEY_1_ID);
+                Menu_Show();
+            }
+        }
+        break;
+    default:
         break;
     }
     HAL_Delay(10);

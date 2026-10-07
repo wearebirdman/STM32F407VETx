@@ -1,12 +1,12 @@
 #include "bl_image.h"
 #include "bl_crc.h"
 
-static uint8_t s_buf[BL_DL_BUF_SIZE];   /* 分块搬运/校验缓冲 */
+static uint8_t s_Buf[BL_DL_BUF_SIZE];   /* 分块搬运/校验缓冲 */
 
 /* 固件头合法性检查 */
 uint8_t BlImage_ValidHeader(const BlFwHeader_t *hdr)
 {
-    if (hdr == 0)
+    if (hdr == NULL)
         return 0U;
     if (hdr->magic != BL_FW_MAGIC)
         return 0U;
@@ -32,9 +32,9 @@ uint8_t BlImage_VerifyBody(uint32_t body_base, uint32_t fw_size, uint32_t expect
     while (done < body_len)
     {
         chunk = BL_MIN(body_len - done, (uint32_t)BL_DL_BUF_SIZE);
-        if (BlFlash_Read(body_base + done, s_buf, chunk) != BL_FLASH_OK)
+        if (BlFlash_Read(body_base + done, s_Buf, chunk) != BL_FLASH_OK)
             return 0U;
-        BlCrc32_Update(s_buf, chunk);
+        BlCrc32_Update(s_Buf, chunk);
         done += chunk;
     }
     return (BlCrc32_Result() == expect_crc) ? 1U : 0U;
@@ -60,9 +60,9 @@ BlFlashErr_t BlImage_ProgramFrom(uint32_t src_base, const BlFwHeader_t *hdr)
     while (done < body_len)
     {
         chunk = BL_MIN(body_len - done, (uint32_t)BL_DL_BUF_SIZE);
-        if (BlFlash_Read(src + done, s_buf, chunk) != BL_FLASH_OK)
+        if (BlFlash_Read(src + done, s_Buf, chunk) != BL_FLASH_OK)
             return BL_FLASH_ERR_PARAM;
-        err = BlFlash_Write(dst + done, s_buf, chunk);
+        err = BlFlash_Write(dst + done, s_Buf, chunk);
         if (err != BL_FLASH_OK)
             return err;
         done += chunk;

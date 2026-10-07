@@ -11,13 +11,13 @@
 #define LCD_SPI_HANDLE hspi2
 
 /* 引脚定义（GPIO 端口 + 引脚号） */
-#define LCD_CS_PORT   GPIOB // 片选，低电平有效
+#define LCD_CS_PORT   GPIOB /* 片选，低电平有效 */
 #define LCD_CS_PIN    GPIO_PIN_14
-#define LCD_DC_PORT   GPIOC // 数据/命令选择，低=命令 高=数据
+#define LCD_DC_PORT   GPIOC /* 数据/命令选择，低=命令 高=数据 */
 #define LCD_DC_PIN    GPIO_PIN_6
-#define LCD_RST_PORT  GPIOB // 复位，低电平有效
+#define LCD_RST_PORT  GPIOB /* 复位，低电平有效 */
 #define LCD_RST_PIN   GPIO_PIN_12
-#define LCD_BLK_PORT  GPIOC // 背光，高电平亮
+#define LCD_BLK_PORT  GPIOC /* 背光，高电平亮 */
 #define LCD_BLK_PIN   GPIO_PIN_7
 
 /* 显示方向：0/1=竖屏(128×160)，2/3=横屏(160×128) */

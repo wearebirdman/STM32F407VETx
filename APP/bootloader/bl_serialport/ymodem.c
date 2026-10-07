@@ -18,21 +18,21 @@
 #define YM_RX_TIMEOUT  3000U
 #define YM_ERR_RETRY   10U     /* 单个块连续错误上限 */
 
-static uint8_t s_block[YM_BLOCK_MAX];
+static uint8_t s_Block[YM_BLOCK_MAX];
 
-static YmAbortFn_t s_abort_check;
-static uint32_t s_wait_ms = 60000U;   /* 等待发送方最大时长（毫秒） */
+static YmAbortFn_t s_AbortCheck;
+static uint32_t s_WaitMs = 60000U;   /* 等待发送方最大时长（毫秒） */
 
 /* 设置取消检查钩子 */
 void Ymodem_SetAbortCheck(YmAbortFn_t fn)
 {
-    s_abort_check = fn;
+    s_AbortCheck = fn;
 }
 
 /* 设置等待发送方的最大时长 */
 void Ymodem_SetWaitMs(uint32_t ms)
 {
-    s_wait_ms = ms;
+    s_WaitMs = ms;
 }
 
 /* 发送单字节 */
@@ -79,7 +79,7 @@ static uint8_t Ymodem_ReadBlock(uint8_t type, uint8_t *blk, uint16_t *dlen)
 
     if (!Ymodem_Get(blk, YM_RX_TIMEOUT) || !Ymodem_Get(&cblk, YM_RX_TIMEOUT))
         return 0xFFU;
-    if (HAL_UART_Receive(&huart1, s_block, len, YM_RX_TIMEOUT) != HAL_OK)
+    if (HAL_UART_Receive(&huart1, s_Block, len, YM_RX_TIMEOUT) != HAL_OK)
         return 0xFFU;
     if (!Ymodem_Get(&crcH, YM_RX_TIMEOUT) || !Ymodem_Get(&crcL, YM_RX_TIMEOUT))
         return 0xFFU;
@@ -87,7 +87,7 @@ static uint8_t Ymodem_ReadBlock(uint8_t type, uint8_t *blk, uint16_t *dlen)
     if ((*blk ^ cblk) != 0xFFU)
         return 0xFFU;                       /* 块号校验失败 */
 
-    if (Ymodem_Crc16(s_block, len) != (uint16_t)((crcH << 8) | crcL))
+    if (Ymodem_Crc16(s_Block, len) != (uint16_t)((crcH << 8) | crcL))
         return 0xFFU;                       /* CRC16校验失败 */
 
     *dlen = len;
@@ -136,24 +136,24 @@ YmErr_t Ymodem_RecvFile(YmProgress_t prog, uint32_t *p_received)
     Ymodem_Put(YM_CRC);
     while (1)
     {
-        if (s_abort_check && s_abort_check())
+        if (s_AbortCheck != NULL && s_AbortCheck())
         {
             if (p_received) *p_received = 0U;
             return YM_ERR_ABORT;            /* 用户取消 */
         }
         uint32_t elapsed = HAL_GetTick() - wait_start;
-        if (elapsed >= s_wait_ms)           /* 倒计时结束仍未收到包 → 超时 */
+        if (elapsed >= s_WaitMs)           /* 倒计时结束仍未收到包 → 超时 */
         {
             if (p_received) *p_received = 0U;
-            if (prog) prog(0U, (s_wait_ms / 1000U));
+            if (prog != NULL) prog(0U, (s_WaitMs / 1000U));
             return YM_ERR_TIMEOUT;
         }
         /* 每变化1秒上报一次剩余秒数 */
-        uint32_t remain = (s_wait_ms - elapsed) / 1000U;
+        uint32_t remain = (s_WaitMs - elapsed) / 1000U;
         if (remain != last_sec)
         {
             last_sec = remain;
-            if (prog) prog(remain, (s_wait_ms / 1000U));
+            if (prog != NULL) prog(remain, (s_WaitMs / 1000U));
         }
         if (!Ymodem_Get(&b, YM_POLL_MS))
             continue;                       /* 无数据：继续等待 */
@@ -167,7 +167,7 @@ YmErr_t Ymodem_RecvFile(YmProgress_t prog, uint32_t *p_received)
             r = Ymodem_ReadBlock(b, &blk, &dlen);
             if ((r != 0xFFU) && (blk == 0U))
             {
-                total = Ymodem_ParseSize(s_block);
+                total = Ymodem_ParseSize(s_Block);
                 received = 0U;
                 if (!Ymodem_Put(YM_ACK))
                     return YM_ERR_ABORT;
@@ -189,7 +189,7 @@ YmErr_t Ymodem_RecvFile(YmProgress_t prog, uint32_t *p_received)
     uint32_t blk_start = HAL_GetTick();
     while (1)
     {
-        if (s_abort_check && s_abort_check())
+        if (s_AbortCheck != NULL && s_AbortCheck())
             return YM_ERR_ABORT;            /* 用户取消 */
         if (!Ymodem_Get(&b, YM_POLL_MS))
         {
@@ -232,7 +232,7 @@ YmErr_t Ymodem_RecvFile(YmProgress_t prog, uint32_t *p_received)
                 Ymodem_Put(YM_CAN); Ymodem_Put(YM_CAN);
                 return YM_ERR_SIZE;
             }
-            if (BlFlash_Write(BL_DL_BASE + received, s_block, dlen) != BL_FLASH_OK)
+            if (BlFlash_Write(BL_DL_BASE + received, s_Block, dlen) != BL_FLASH_OK)
             {
                 Ymodem_Put(YM_CAN); Ymodem_Put(YM_CAN);
                 return YM_ERR_PROTO;
@@ -240,7 +240,7 @@ YmErr_t Ymodem_RecvFile(YmProgress_t prog, uint32_t *p_received)
             received += dlen;
             blknum = (uint8_t)(blk + 1U);
             Ymodem_Put(YM_ACK);
-            if (prog)
+            if (prog != NULL)
                 prog(received, total);
         }
         /* 其它字节：忽略 */
@@ -261,7 +261,7 @@ YmErr_t Ymodem_RecvFile(YmProgress_t prog, uint32_t *p_received)
         if (b == YM_SOH)
         {
             r = Ymodem_ReadBlock(YM_SOH, &blk, &dlen);
-            if ((r != 0xFFU) && (blk == 0U) && Ymodem_IsNullPkt(s_block))
+            if ((r != 0xFFU) && (blk == 0U) && Ymodem_IsNullPkt(s_Block))
             {
                 Ymodem_Put(YM_ACK);
                 break;

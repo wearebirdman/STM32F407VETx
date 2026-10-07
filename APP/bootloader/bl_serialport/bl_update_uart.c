@@ -5,14 +5,14 @@
 #include "ymodem.h"
 #include "key.h"          /* 升级期间轮询KEY1中止 */
 
-static BlUpdProgress_t s_prog;
-static void *s_ctx;
+static BlUpdProgress_t s_Prog;
+static void *s_Ctx;
 
 /* 透传Ymodem协议层进度到注入的回调 */
 static void BlUpdateUart_Prog(uint32_t received, uint32_t total)
 {
-    if (s_prog)
-        s_prog(received, total, s_ctx);
+    if (s_Prog != NULL)
+        s_Prog(received, total, s_Ctx);
 }
 
 /* 等待/传输期间按KEY1短按中止 */
@@ -31,8 +31,8 @@ BlUpdStatus_t Bl_UpdateUartStart(BlUpdProgress_t prog, void *ctx)
     YmErr_t r;
     BlUpdStatus_t st = BL_UPD_OK;
 
-    s_prog = prog;
-    s_ctx = ctx;
+    s_Prog = prog;
+    s_Ctx = ctx;
 
     /* 等待发送方最长BL_UART_WAIT_MS，期间按KEY1可中止 */
     Ymodem_SetAbortCheck(BlUpdateUart_AbortByKey1);
