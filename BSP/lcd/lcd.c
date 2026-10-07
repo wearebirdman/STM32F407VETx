@@ -1,9 +1,8 @@
 #include "lcd.h"
 #include "lcd_font.h"
+#include "spi.h"
 
 #include <stdarg.h>
-
-extern SPI_HandleTypeDef LCD_SPI_HANDLE;
 
 /* GPIO 快速控制（BSRR 直写，单周期原子操作） */
 #define LCD_CS_LOW()                                      \
@@ -55,20 +54,19 @@ extern SPI_HandleTypeDef LCD_SPI_HANDLE;
 /* DMA 传输相关 */
 #ifdef LCD_USE_DMA
 #include "dma.h"
-extern DMA_HandleTypeDef hdma_spi1_tx;
 
-static volatile uint8_t s_dma_busy = 0;    // DMA 忙标志
-static uint8_t s_dma_cs_ctrl = 0;          // CS 控制模式：0=回调管（图片/视频），1=调用者管（填充/图形库）
+static volatile uint8_t s_DmaBusy = 0; /* DMA 忙标志 */
+static uint8_t s_DmaCsCtrl = 0;        /* CS 控制模式：0=回调管（图片/视频），1=调用者管（填充/图形库） */
 
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 {
     if (hspi->Instance != LCD_SPI_HANDLE.Instance)
         return;
 
-    if (s_dma_cs_ctrl == 0)
-        LCD_CS_HIGH(); // 单次模式：回调自动拉高 CS
-    // 分段模式：CS 由调用者管理，回调不操作
-    s_dma_busy = 0;
+    if (s_DmaCsCtrl == 0)
+        LCD_CS_HIGH(); /* 单次模式：回调自动拉高 CS */
+    /* 分段模式：CS 由调用者管理，回调不操作 */
+    s_DmaBusy = 0;
 }
 #endif
 
@@ -98,18 +96,18 @@ static void Lcd_SpiTxBuf(const uint8_t *buf, uint16_t len)
 static void Lcd_WaitDma(void)
 {
     uint32_t timeout = HAL_GetTick() + LCD_SPI_TIMEOUT;
-    while (s_dma_busy)
+    while (s_DmaBusy)
     {
         if (HAL_GetTick() > timeout)
         {
             HAL_SPI_Abort(&LCD_SPI_HANDLE);
-            s_dma_busy = 0;
-            if (s_dma_cs_ctrl == 0)
-                LCD_CS_HIGH(); // 仅单次模式超时需要拉高 CS
+            s_DmaBusy = 0;
+            if (s_DmaCsCtrl == 0)
+                LCD_CS_HIGH(); /* 仅单次模式超时需要拉高 CS */
             break;
         }
 #ifdef LCD_USE_FREERTOS
-        // 调度器未启动时（Lcd_Init 阶段）不能调用 osThreadYield，改用忙等
+        /* 调度器未启动时（Lcd_Init 阶段）不能调用 osThreadYield，改用忙等 */
         if (osKernelGetState() == osKernelRunning)
             osThreadYield();
 #endif
@@ -122,16 +120,16 @@ static void Lcd_SpiTxBufDma(const uint8_t *buf, uint32_t len)
     if (len == 0)
         return;
 
-    Lcd_WaitDma(); // 等待上一次传输结束
-    s_dma_busy = 1;
+    Lcd_WaitDma(); /* 等待上一次传输结束 */
+    s_DmaBusy = 1;
 
     if (HAL_SPI_Transmit_DMA(&LCD_SPI_HANDLE, (uint8_t *)buf, len) != HAL_OK)
     {
-        // DMA 启动失败 → 回退阻塞式
+        /* DMA 启动失败 → 回退阻塞式 */
         HAL_SPI_Transmit(&LCD_SPI_HANDLE, (uint8_t *)buf, len, LCD_SPI_TIMEOUT);
-        if (s_dma_cs_ctrl == 0)
+        if (s_DmaCsCtrl == 0)
             LCD_CS_HIGH();
-        s_dma_busy = 0;
+        s_DmaBusy = 0;
     }
 }
 
@@ -179,15 +177,15 @@ static void Lcd_SetWindow(uint16_t xs, uint16_t ys, uint16_t xe, uint16_t ye)
 
     LCD_CS_LOW();
     LCD_DC_LOW();
-    Lcd_SpiTxByte(0x2A); // 设置列地址
+    Lcd_SpiTxByte(0x2A); /* 设置列地址 */
     LCD_DC_HIGH();
     Lcd_SpiTxBuf(xbuf, 4);
     LCD_DC_LOW();
-    Lcd_SpiTxByte(0x2B); // 设置行地址
+    Lcd_SpiTxByte(0x2B); /* 设置行地址 */
     LCD_DC_HIGH();
     Lcd_SpiTxBuf(ybuf, 4);
     LCD_DC_LOW();
-    Lcd_SpiTxByte(0x2C); // 准备写入像素数据
+    Lcd_SpiTxByte(0x2C); /* 准备写入像素数据 */
     LCD_DC_HIGH();
 }
 
@@ -201,17 +199,17 @@ void Lcd_Init(void)
     HAL_Delay(150);
 
     Lcd_Cmd(0x01);
-    HAL_Delay(150); // 软件复位
+    HAL_Delay(150); /* 软件复位 */
     Lcd_Cmd(0x11);
-    HAL_Delay(200); // 退出睡眠
+    HAL_Delay(200); /* 退出睡眠 */
 
     /* 显示区域 */
-    { // CASET (0x2A)：列地址
+    { /* CASET (0x2A)：列地址 */
         uint8_t col_data[] = {0x00, 0x00,
                               (uint8_t)((LCD_W - 1) >> 8), (uint8_t)(LCD_W - 1)};
         Lcd_CmdData(0x2A, col_data, sizeof(col_data));
     }
-    { // RASET (0x2B)：行地址
+    { /* RASET (0x2B)：行地址 */
         uint8_t row_data[] = {0x00, 0x00,
                               (uint8_t)((LCD_H - 1) >> 8), (uint8_t)(LCD_H - 1)};
         Lcd_CmdData(0x2B, row_data, sizeof(row_data));
@@ -220,13 +218,13 @@ void Lcd_Init(void)
     /* 帧率控制 */
     {
         uint8_t frm_data[] = {0x01, 0x2C, 0x2D};
-        Lcd_CmdData(0xB1, frm_data, sizeof(frm_data)); // FRMCTR1：正常模式帧率
-        Lcd_CmdData(0xB2, frm_data, sizeof(frm_data)); // FRMCTR2：空闲模式帧率
-        Lcd_CmdData(0xB3, frm_data, sizeof(frm_data)); // FRMCTR3：部分模式帧率
+        Lcd_CmdData(0xB1, frm_data, sizeof(frm_data)); /* FRMCTR1：正常模式帧率 */
+        Lcd_CmdData(0xB2, frm_data, sizeof(frm_data)); /* FRMCTR2：空闲模式帧率 */
+        Lcd_CmdData(0xB3, frm_data, sizeof(frm_data)); /* FRMCTR3：部分模式帧率 */
     }
     {
         uint8_t inv_data[] = {0x07};
-        Lcd_CmdData(0xB4, inv_data, sizeof(inv_data)); // INVCTR：列反转控制
+        Lcd_CmdData(0xB4, inv_data, sizeof(inv_data)); /* INVCTR：列反转控制 */
     }
 
     /* 电源序列 */
@@ -262,21 +260,21 @@ void Lcd_Init(void)
         {
         case 0:
             madctl = 0x00;
-            break; // 竖屏 正常
+            break; /* 竖屏 正常 */
         case 1:
             madctl = 0xC0;
-            break; // 竖屏 镜像
+            break; /* 竖屏 镜像 */
         case 2:
             madctl = 0x70;
-            break; // 横屏 正常
+            break; /* 横屏 正常 */
         case 3:
             madctl = 0xA0;
-            break; // 横屏 镜像
+            break; /* 横屏 镜像 */
         default:
             madctl = 0x00;
             break;
         }
-        Lcd_CmdData(0x36, &madctl, 1); // MADCTL：内存数据访问控制
+        Lcd_CmdData(0x36, &madctl, 1); /* MADCTL：内存数据访问控制 */
     }
 
     /* Gamma */
@@ -284,13 +282,13 @@ void Lcd_Init(void)
         uint8_t gamma_pos[] = {
             0x0F, 0x1A, 0x0F, 0x18, 0x2F, 0x28, 0x20, 0x22,
             0x1F, 0x1B, 0x23, 0x37, 0x00, 0x07, 0x02, 0x10};
-        Lcd_CmdData(0xE0, gamma_pos, sizeof(gamma_pos)); // GMCTRP1：正 Gamma 校正
+        Lcd_CmdData(0xE0, gamma_pos, sizeof(gamma_pos)); /* GMCTRP1：正 Gamma 校正 */
     }
     {
         uint8_t gamma_neg[] = {
             0x0F, 0x1B, 0x0F, 0x17, 0x33, 0x2C, 0x29, 0x2E,
             0x30, 0x30, 0x39, 0x3F, 0x00, 0x07, 0x03, 0x10};
-        Lcd_CmdData(0xE1, gamma_neg, sizeof(gamma_neg)); // GMCTRN1：负 Gamma 校正
+        Lcd_CmdData(0xE1, gamma_neg, sizeof(gamma_neg)); /* GMCTRN1：负 Gamma 校正 */
     }
 
     /* 像素格式：RGB565 */
@@ -300,11 +298,11 @@ void Lcd_Init(void)
     }
 
     /* 普通显示模式 */
-    Lcd_Cmd(0x13); // NORON：正常显示模式
+    Lcd_Cmd(0x13); /* NORON：正常显示模式 */
 
     /* 打开显示 */
-    Lcd_Cmd(0x29); // DISPON：打开显示
-    HAL_Delay(50); // 等待显示稳定
+    Lcd_Cmd(0x29); /* DISPON：打开显示 */
+    HAL_Delay(50); /* 等待显示稳定 */
 
     /* 清屏：GRAM 上电后内容随机，不清屏会花屏 */
     Lcd_Clear(LCD_BLACK);
@@ -353,21 +351,21 @@ void Lcd_Fill(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color
     Lcd_SetWindow(x1, y1, x2, y2);
 
 #ifdef LCD_USE_DMA
-    // DMA 路径：1024 字节静态缓冲区，颜色只预填一次
+    /* DMA 路径：1024 字节静态缓冲区，颜色只预填一次 */
     {
-        static uint8_t fill_buf[1024]; // 512 像素，占 RAM 1 KB
+        static uint8_t fill_buf[1024]; /* 512 像素，占 RAM 1 KB */
         uint16_t i;
         uint8_t hi = color >> 8, lo = color & 0xFF;
 
-        // 颜色预填：1024 字节只做一次
+        /* 颜色预填：1024 字节只做一次 */
         for (i = 0; i < sizeof(fill_buf); i += 2)
         {
             fill_buf[i] = hi;
             fill_buf[i + 1] = lo;
         }
 
-        // 分段模式：CS 由调用者管理，多次 DMA 共享同一个窗口
-        s_dma_cs_ctrl = 1;
+        /* 分段模式：CS 由调用者管理，多次 DMA 共享同一个窗口 */
+        s_DmaCsCtrl = 1;
 
         while (pixels > 0)
         {
@@ -375,12 +373,12 @@ void Lcd_Fill(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color
             Lcd_SpiTxBufDma(fill_buf, (uint32_t)batch * 2);
             pixels -= batch;
         }
-        Lcd_WaitDma(); // 确保最后一段传输完成
+        Lcd_WaitDma(); /* 确保最后一段传输完成 */
 
-        s_dma_cs_ctrl = 0; // 恢复单次模式
+        s_DmaCsCtrl = 0; /* 恢复单次模式 */
     }
 #else
-    // 阻塞路径
+    /* 阻塞路径 */
     {
         uint8_t buf[128];
         uint8_t hi = color >> 8, lo = color & 0xFF;
@@ -418,15 +416,15 @@ void Lcd_DrawLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint16_t color
     int dx, dy, sx, sy, cx, cy, err, e2;
     uint32_t steps;
 
-    // 快速剔除：两端点都在屏幕同一侧外部
+    /* 快速剔除：两端点都在屏幕同一侧外部 */
     if (x1 >= LCD_W && x2 >= LCD_W)
-        return; // 两点都在右侧外部
+        return; /* 两点都在右侧外部 */
     if (x1 < 0 && x2 < 0)
-        return; // 两点都在左侧外部
+        return; /* 两点都在左侧外部 */
     if (y1 >= LCD_H && y2 >= LCD_H)
-        return; // 两点都在下方外部
+        return; /* 两点都在下方外部 */
     if (y1 < 0 && y2 < 0)
-        return; // 两点都在上方外部
+        return; /* 两点都在上方外部 */
 
     dx = (int)x2 - (int)x1;
     dy = (int)y2 - (int)y1;
@@ -450,7 +448,7 @@ void Lcd_DrawLine(int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint16_t color
         if (cx == x2 && cy == y2)
             break;
         if (--steps == 0)
-            break; // 保底：防止意外死循环
+            break; /* 保底：防止意外死循环 */
         e2 = err * 2;
         if (e2 > -dy)
         {
@@ -554,7 +552,7 @@ static void Lcd_FillStringRow(uint8_t *buf, const char *str, uint16_t len,
         uint8_t byte = (ch >= ' ' && ch <= '~')
                            ? ((size == 12) ? ascii_1206[ch - ' '][row]
                                            : ascii_1608[ch - ' '][row])
-                           : 0; // 不可打印字符按背景填充，保持行内字符位置
+                           : 0; /* 不可打印字符按背景填充，保持行内字符位置 */
 
         for (t = 0; t < sizex; t++)
         {
@@ -588,7 +586,7 @@ void Lcd_ShowString(uint16_t x, uint16_t y, const char *str,
     if (x >= LCD_W || y + size > LCD_H)
         return;
 
-    // 计算实际可显示的字符数（右侧裁剪）
+    /* 计算实际可显示的字符数（右侧裁剪） */
     max_w = (uint16_t)(LCD_W - x);
     while (str[len] != '\0' && len < max_w / sizex)
         len++;
@@ -605,20 +603,20 @@ void Lcd_ShowString(uint16_t x, uint16_t y, const char *str,
 
 #ifdef LCD_USE_DMA
     {
-        static uint8_t line_buf[2][LCD_W * 2]; // 双缓冲：构建与传输并行
+        static uint8_t line_buf[2][LCD_W * 2]; /* 双缓冲：构建与传输并行 */
         uint8_t buf_idx = 0;
 
-        s_dma_cs_ctrl = 1; // 分段模式：CS 由本函数管理
+        s_DmaCsCtrl = 1; /* 分段模式：CS 由本函数管理 */
 
         for (row = 0; row < size; row++)
         {
             Lcd_FillStringRow(line_buf[buf_idx], str, len, sizex, size, row,
                               hi_fc, lo_fc, hi_bc, lo_bc);
-            Lcd_SpiTxBufDma(line_buf[buf_idx], (uint32_t)str_w * 2); // 内部等待上一行完成
+            Lcd_SpiTxBufDma(line_buf[buf_idx], (uint32_t)str_w * 2); /* 内部等待上一行完成 */
             buf_idx ^= 1;
         }
-        Lcd_WaitDma();      // 确保最后一行传输完成
-        s_dma_cs_ctrl = 0; // 恢复单次模式
+        Lcd_WaitDma();   /* 确保最后一行传输完成 */
+        s_DmaCsCtrl = 0; /* 恢复单次模式 */
     }
 #else
     {
@@ -707,7 +705,7 @@ static void Lcd_PrintInner(uint16_t x, uint16_t y, uint16_t fc, uint16_t bc, uin
             continue;
         }
 
-        // 解析 % 后面的格式符
+        /* 解析 % 后面的格式符 */
         c = *fmt++;
         switch (c)
         {
@@ -772,7 +770,7 @@ static void Lcd_PrintInner(uint16_t x, uint16_t y, uint16_t fc, uint16_t bc, uin
             }
             Lcd_Utoa(p, (unsigned int)(ival / 100));
             while (*p)
-                p++; // 跳到末尾
+                p++; /* 跳到末尾 */
             *p++ = '.';
             unsigned int frac = (unsigned int)(ival % 100);
             if (frac < 10)
@@ -791,7 +789,7 @@ static void Lcd_PrintInner(uint16_t x, uint16_t y, uint16_t fc, uint16_t bc, uin
             x += sizex;
             break;
         default:
-            // 未知格式：原样输出
+            /* 未知格式：原样输出 */
             Lcd_ShowChar(x, y, '%', fc, bc, size);
             x += sizex;
             Lcd_ShowChar(x, y, c, fc, bc, size);
@@ -823,35 +821,35 @@ void Lcd_ShowPicture(int16_t x, int16_t y, uint16_t w, uint16_t h, const uint8_t
     if (pic == NULL || w == 0 || h == 0)
         return;
 
-    // 数据长度校验：至少要有 w * h * 2 字节
+    /* 数据长度校验：至少要有 w * h * 2 字节 */
     if (data_len != 0 && data_len < (uint32_t)w * (uint32_t)h * 2)
         return;
 
-    // 裁剪：计算屏幕内可见区域
+    /* 裁剪：计算屏幕内可见区域 */
     row_start = 0;
     row_end = (int16_t)(h - 1);
 
     if (y < 0)
-        row_start = -y; // 图片顶部在屏幕上方，跳过不可见行
+        row_start = -y; /* 图片顶部在屏幕上方，跳过不可见行 */
     if (y + h > LCD_H)
-        row_end = LCD_H - 1 - y; // 图片底部超出屏幕
+        row_end = LCD_H - 1 - y; /* 图片底部超出屏幕 */
 
     col_start = 0;
     col_end = (int16_t)(w - 1);
 
     if (x < 0)
-        col_start = -x; // 图片左侧在屏幕左方
+        col_start = -x; /* 图片左侧在屏幕左方 */
     if (x + w > LCD_W)
-        col_end = LCD_W - 1 - x; // 图片右侧超出屏幕
+        col_end = LCD_W - 1 - x; /* 图片右侧超出屏幕 */
 
-    // 完全不可见
+    /* 完全不可见 */
     if (row_start > row_end || col_start > col_end)
         return;
 
     draw_w = (uint16_t)(col_end - col_start + 1);
 
-    // 逐行发送可见部分
-    byte_offset = (uint32_t)col_start * 2; // 每行跳过的字节数
+    /* 逐行发送可见部分 */
+    byte_offset = (uint32_t)col_start * 2; /* 每行跳过的字节数 */
     for (row = (uint16_t)row_start; row <= (uint16_t)row_end; row++)
     {
         uint16_t lcd_y = (uint16_t)(y + row);

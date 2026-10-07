@@ -4,38 +4,40 @@
 #include <stdio.h>
 #include <string.h>
 
-/* 内部宏定义 */
-#define AT24CXX_WRITE_ADDR    ((AT24CXX_DEV_ADDR << 1) & 0xFE) // 写地址（7位地址左移1位，最低位为0）
-#define AT24CXX_I2C_TIMEOUT   100                              // I2C 超时时间（ms）
-#define AT24CXX_WRITE_TIMEOUT 10                               // 写周期等待超时（典型最大 5ms，留余量）
+/* ========== 内部宏定义 ========== */
+#define AT24CXX_WRITE_ADDR       ((AT24CXX_DEV_ADDR << 1) & 0xFE) /* 写地址（7位地址左移1位，最低位为0） */
+#define AT24CXX_I2C_TIMEOUT      100                              /* I2C 超时时间（ms） */
+#define AT24CXX_WRITE_TIMEOUT    10                               /* 写周期等待超时（典型最大 5ms，留余量） */
+#define AT24CXX_DEV_CHECK_TRIALS 3                                /* 检测设备应答重试次数 */
 
-/* 内部函数声明 */
+/* ========== 内部函数声明 ========== */
 static uint8_t AT24CXX_CheckDevice(void);
-static void AT24CXX_WaitWriteComplete(void);
+static AT24CXXErr_t AT24CXX_WaitWriteComplete(void);
 static uint8_t AT24CXX_CheckAddr(uint16_t addr, uint16_t len);
 
 /* 检测设备是否存在（发送设备地址，检查ACK），1 = 存在, 0 = 不存在 */
 static uint8_t AT24CXX_CheckDevice(void)
 {
     /* 尝试发送写地址，检测是否应答 */
-    HAL_StatusTypeDef status =
-        HAL_I2C_IsDeviceReady(&AT24CXX_I2C, AT24CXX_WRITE_ADDR, 3, AT24CXX_I2C_TIMEOUT);
+    HAL_StatusTypeDef status = HAL_I2C_IsDeviceReady(&AT24CXX_I2C,
+                                                     AT24CXX_WRITE_ADDR,
+                                                     AT24CXX_DEV_CHECK_TRIALS,
+                                                     AT24CXX_I2C_TIMEOUT);
     return (status == HAL_OK) ? 1 : 0;
 }
 
-/*
- * 等待内部写周期完成（通过轮询设备应答）
+/* 等待内部写周期完成（通过轮询设备应答）
  * 每次写操作后，芯片内部会进入写周期（典型最大 5ms），期间不响应 I2C
- */
-static void AT24CXX_WaitWriteComplete(void)
+ * 返回: AT24CXX_OK = 设备已就绪；AT24CXX_ERR_TIMEOUT = 超时仍未应答（掉线/总线卡死） */
+static AT24CXXErr_t AT24CXX_WaitWriteComplete(void)
 {
-    uint32_t timeout = AT24CXX_WRITE_TIMEOUT;
-    while (timeout--)
+    for (uint32_t elapsed = 0; elapsed < AT24CXX_WRITE_TIMEOUT; elapsed++)
     {
         if (AT24CXX_CheckDevice())
-            break;
+            return AT24CXX_OK;
         HAL_Delay(1);
     }
+    return AT24CXX_ERR_TIMEOUT;
 }
 
 /* 检查地址是否越界，0 = 越界, 1 = 合法 */
@@ -82,23 +84,21 @@ AT24CXXErr_t AT24CXX_Read(uint16_t addr, uint8_t *buf, uint16_t len)
 
     /* 使用 HAL 库的 Mem_Read 函数（地址宽度由所选型号决定） */
     HAL_StatusTypeDef status = HAL_I2C_Mem_Read(&AT24CXX_I2C,
-                                                AT24CXX_WRITE_ADDR,
-                                                addr,
-                                                AT24CXX_MEMADD_SIZE,
-                                                buf,
-                                                len,
-                                                AT24CXX_I2C_TIMEOUT);
+                                                 AT24CXX_WRITE_ADDR,
+                                                 addr,
+                                                 AT24CXX_MEMADD_SIZE,
+                                                 buf,
+                                                 len,
+                                                 AT24CXX_I2C_TIMEOUT);
     if (status != HAL_OK)
         return AT24CXX_ERR_DEVICE;
 
     return AT24CXX_OK;
 }
 
-/*
- * 页写入（单次最多 AT24CXX_PAGE_SIZE 字节）
+/* 页写入（单次最多 AT24CXX_PAGE_SIZE 字节）
  * 如果数据跨页，硬件会自动回绕到页首，可能导致数据覆盖，
- * 建议使用 AT24CXX_Write() 处理跨页写入
- */
+ * 建议使用 AT24CXX_Write() 处理跨页写入 */
 AT24CXXErr_t AT24CXX_PageWrite(uint16_t addr, uint8_t *buf, uint16_t len)
 {
     /* 参数检查 */
@@ -112,8 +112,10 @@ AT24CXXErr_t AT24CXX_PageWrite(uint16_t addr, uint8_t *buf, uint16_t len)
     if (!AT24CXX_CheckAddr(addr, len))
         return AT24CXX_ERR_ADDR;
 
-    /* 等待前一次写操作完成 */
-    AT24CXX_WaitWriteComplete();
+    /* 等待前一次写操作完成，超时说明设备无应答，中止本次写入 */
+    AT24CXXErr_t ret = AT24CXX_WaitWriteComplete();
+    if (ret != AT24CXX_OK)
+        return ret;
 
     /* 使用 HAL 库的 Mem_Write 函数 */
     HAL_StatusTypeDef status = HAL_I2C_Mem_Write(&AT24CXX_I2C,
@@ -130,13 +132,10 @@ AT24CXXErr_t AT24CXX_PageWrite(uint16_t addr, uint8_t *buf, uint16_t len)
     return AT24CXX_OK;
 }
 
-/*
- * 任意地址写入任意长度数据（自动处理跨页）
- * 自动将数据拆分为多次页写入，处理页边界，每次页写入后等待写周期完成
- */
+/* 任意地址写入任意长度数据（自动处理跨页）
+ * 自动将数据拆分为多次页写入，处理页边界，每次页写入后等待写周期完成 */
 AT24CXXErr_t AT24CXX_Write(uint16_t addr, uint8_t *buf, uint16_t len)
 {
-    AT24CXXErr_t ret;
     uint16_t remaining = len;
     uint16_t current_addr = addr;
     uint8_t *current_buf = buf;
@@ -159,16 +158,14 @@ AT24CXXErr_t AT24CXX_Write(uint16_t addr, uint8_t *buf, uint16_t len)
         uint16_t chunk = (remaining > page_remain) ? page_remain : remaining;
 
         /* 执行页写入 */
-        ret = AT24CXX_PageWrite(current_addr, current_buf, chunk);
+        AT24CXXErr_t ret = AT24CXX_PageWrite(current_addr, current_buf, chunk);
         if (ret != AT24CXX_OK)
             return ret;
 
-        /*
-         * 等待写周期完成（PageWrite 内部已经等待了前一次，但本次写入后需要等待）
-         * 实际上 PageWrite 内部调用 WaitWriteComplete 是在写入前，所以写入后需要等待
-         * 这里为了可靠，在每次 PageWrite 后主动等待
-         */
-        AT24CXX_WaitWriteComplete();
+        /* 等待本次写周期完成（PageWrite 内部等待发生在写入前，写后主动等待更可靠） */
+        ret = AT24CXX_WaitWriteComplete();
+        if (ret != AT24CXX_OK)
+            return ret;
 
         /* 更新指针和剩余长度 */
         current_addr += chunk;
@@ -179,13 +176,11 @@ AT24CXXErr_t AT24CXX_Write(uint16_t addr, uint8_t *buf, uint16_t len)
     return AT24CXX_OK;
 }
 
-/* 使用示例 */
-#if 1 // 设置为1启用示例代码
+/* ========== 使用示例 ========== */
+#if AT24CXX_ENABLE_EXAMPLE
 
-/*
- * AT24CXX 使用示例，展示完整的读写流程：
- * 初始化芯片 -> 获取芯片信息 -> 写入数据（自动跨页）-> 读取数据 -> 验证数据
- */
+/* AT24CXX 使用示例，展示完整的读写流程：
+ * 初始化芯片 -> 获取芯片信息 -> 写入数据（自动跨页）-> 读取数据 -> 验证数据 */
 void AT24CXX_Example(void)
 {
     /* 测试数据 */
@@ -247,4 +242,4 @@ void AT24CXX_Example(void)
     }
 }
 
-#endif /* 示例代码 */
+#endif /* AT24CXX_ENABLE_EXAMPLE */

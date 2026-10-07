@@ -6,6 +6,7 @@ packDir: .pack/Keil/STM32F4xx_DFP.2.14.0
 srcDirs:
   - APP
   - BSP
+  - SVC
   - Core
   - Drivers
   - Middlewares
@@ -27,6 +28,8 @@ targets:
       defineList:
         - STM32F407xx
         - USE_HAL_DRIVER
+        - USER_VECT_TAB_ADDRESS
+        - VECT_TAB_OFFSET=0x20000U
       incList:
         - .
         - Core/Inc
@@ -47,7 +50,6 @@ targets:
         - APP/lcd
         - APP/led
         - APP/uart
-        - APP/bootloader
         - APP/bootloader/bl_app
         - APP/bootloader/bl_param
       libList: []

@@ -1,42 +1,46 @@
 #include "key_task.h"
 #include "key.h"
 
-extern osMessageQueueId_t q_KeyMsgHandle;
+/* ========== 任务配置 ========== */
+#define KEY_SCAN_PERIOD_MS  10  /* 按键扫描周期（ms） */
 
-void key_proc(void *argument)
+/* 按键任务入口 */
+void Key_Proc(void *argument)
 {
     KeyMsg_t key_msg;
+
+    (void)argument;
 
     Key_Init();
 
     for (;;)
     {
         key_msg = Key_Scan();
-        switch (key_msg.key_id) 
+        switch (key_msg.key_id)
         {
-            case KEY_WK_ID:
-                if (key_msg.event == KEY_EVENT_SHORT_PRESS) 
-                {
-                    // 处理 WK_UP 按键短按事件
-                }
-                break;  
-            case KEY_1_ID:
-                if (key_msg.event == KEY_EVENT_SHORT_PRESS) 
-                {
-                    
-                }
-                break;
-            case KEY_2_ID:
-                if (key_msg.event == KEY_EVENT_SHORT_PRESS) 
-                {
-                   
-                }
-                break;
-            case KEY_NONE_ID:
-                break;
-            default:
-                break;
+        case KEY_WK_ID:
+            if (key_msg.event == KEY_EVENT_SHORT_PRESS)
+            {
+                /* 处理 WK_UP 按键短按事件 */
+            }
+            break;
+        case KEY_1_ID:
+            if (key_msg.event == KEY_EVENT_SHORT_PRESS)
+            {
+                /* 处理 KEY_1 按键短按事件 */
+            }
+            break;
+        case KEY_2_ID:
+            if (key_msg.event == KEY_EVENT_SHORT_PRESS)
+            {
+                /* 处理 KEY_2 按键短按事件 */
+            }
+            break;
+        case KEY_NONE_ID:
+            break;
+        default:
+            break;
         }
-        osDelay(10);   // 每 10ms 扫描一次按键
+        osDelay(KEY_SCAN_PERIOD_MS);  /* 按扫描周期轮询按键 */
     }
 }
