@@ -1,5 +1,7 @@
 #include "key.h"
 
+/* ========== 内部类型与状态定义 ========== */
+
 /* 按键状态定义 */
 typedef enum {
     KEY_STATE_IDLE = 0,
@@ -14,13 +16,15 @@ typedef struct {
     GPIO_TypeDef *port;
     uint16_t pin;
     uint8_t active_level;
-    KeyState_t state;    /* 按键状态 */
-    uint32_t tick_start; /* 当前状态进入时间戳 */
-    uint8_t click_count; /* 已完成的短按次数（用于双击判定） */
+    KeyState_t state;     /* 按键状态 */
+    uint32_t tick_start;  /* 当前状态进入时间戳 */
+    uint8_t click_count;  /* 已完成的短按次数（用于双击判定） */
 } KeyContext_t;
 
 static KeyContext_t s_KeyCtx[KEY_NUM];
 static uint8_t s_Initialized = 0;
+
+/* ========== 按键扫描实现 ========== */
 
 /* 获取按键状态 */
 static uint8_t Key_GetState(uint8_t key_id)
@@ -113,9 +117,7 @@ KeyMsg_t Key_Scan(void)
                     ctx->tick_start = current_tick;
                 }
                 else
-                {
                     ctx->state = KEY_STATE_IDLE;
-                }
             }
             break;
         case KEY_STATE_PRESSED:

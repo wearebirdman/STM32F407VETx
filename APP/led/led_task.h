@@ -6,9 +6,8 @@
 #include "main.h"
 #include "cmsis_os.h"
 
-/* LED 请求队列句柄（freertos.c 中创建） */
-extern osMessageQueueId_t q_LedReqHandle;
+extern osMessageQueueId_t q_LedReqHandle;  /* LED 请求队列，freertos.c 创建 */
 
-void Led_Disp(void *argument);
+void Led_Disp(void *argument);  /* LED任务入口 */
 
 #endif /* __LED_TASK_H */

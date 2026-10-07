@@ -1,9 +1,12 @@
 #include "led_task.h"
 #include "led.h"
 
+/* LED任务入口 */
 void Led_Disp(void *argument)
 {
     LedReq_t led_req;
+
+    (void)argument;
 
     for (;;)
     {

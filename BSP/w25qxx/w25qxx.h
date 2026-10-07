@@ -20,11 +20,11 @@
 
 /* W25Q32 芯片容量参数（4MB = 32Mbit） */
 #ifdef W25Q32
-#define W25QXX_CHIP_SIZE    4194304UL /* 总容量：4MB */
-#define W25QXX_PAGE_COUNT   16384     /* 页数量 (4MB / 256B) */
-#define W25QXX_SECTOR_COUNT 1024      /* 扇区数量 (4MB / 4KB) */
-#define W25QXX_BLOCK_COUNT  64        /* 块数量 (4MB / 64KB) */
-#define W25QXX_EXPECTED_ID  0xEF4016  /* JEDEC ID (Winbond 0xEF, Type 0x40, Size 0x16) */
+#define W25QXX_CHIP_SIZE    4194304UL   /* 总容量：4MB */
+#define W25QXX_PAGE_COUNT   16384       /* 页数量 (4MB / 256B) */
+#define W25QXX_SECTOR_COUNT 1024        /* 扇区数量 (4MB / 4KB) */
+#define W25QXX_BLOCK_COUNT  64          /* 块数量 (4MB / 64KB) */
+#define W25QXX_EXPECTED_ID  0xEF4016    /* JEDEC ID (Winbond 0xEF, Type 0x40, Size 0x16) */
 #endif
 
 /* W25Q128 芯片容量参数（128MB = 1024Mbit） */
@@ -49,11 +49,8 @@
  */
 
 /* 常用地址宏 */
-#define W25QXX_TEST_ADDR        0x000000                                /* 测试地址（扇区首地址） */
-#define W25QXX_LAST_SECTOR_ADDR (W25QXX_CHIP_SIZE - W25QXX_SECTOR_SIZE) /* 最后一个扇区首地址 */
-
-/* 示例代码开关（1=启用，0=停用） */
-#define W25QXX_ENABLE_EXAMPLE 0
+#define W25QXX_TEST_ADDR        0x000000                                 /* 测试地址（扇区首地址） */
+#define W25QXX_LAST_SECTOR_ADDR (W25QXX_CHIP_SIZE - W25QXX_SECTOR_SIZE)  /* 最后一个扇区首地址 */
 
 /* 地址对齐辅助宏 */
 #define W25QXX_PAGE_ALIGN(addr)      ((addr) & ~(W25QXX_PAGE_SIZE - 1))      /* 页对齐 */
@@ -96,6 +93,9 @@
 #define W25QXX_SR1_SEC  0x40 /* 扇区/块保护 */
 #define W25QXX_SR1_SRP0 0x80 /* 状态寄存器保护 0 */
 
+/* 示例代码开关 */
+#define W25QXX_ENABLE_EXAMPLE 0 /* 1=启用示例代码，0=停用 */
+
 /* 错误码定义 */
 typedef enum {
     W25QXX_OK = 0,        /* 成功 */
@@ -104,7 +104,7 @@ typedef enum {
     W25QXX_ERR_PROTECTED, /* 写保护 */
     W25QXX_ERR_ADDR,      /* 地址越界 */
     W25QXX_ERR_PARAM,     /* 参数错误 */
-} W25QxxErr_t;
+} W25QXXErr_t;
 
 /* 芯片信息结构体 */
 typedef struct {
@@ -117,29 +117,29 @@ typedef struct {
     uint32_t page_count;   /* 页数量 */
     uint32_t sector_count; /* 扇区数量 */
     uint32_t block_count;  /* 块数量 */
-} W25QxxInfo_t;
+} W25QXXInfo_t;
 
 /* 函数接口 */
-W25QxxErr_t W25Qxx_Init(void);                                           /* 初始化（验证芯片ID） */
-void W25Qxx_GetInfo(W25QxxInfo_t *info);                                 /* 获取芯片信息 */
-uint32_t W25Qxx_ReadID(void);                                            /* 读取 JEDEC ID */
-uint8_t W25Qxx_ReadStatus1(void);                                        /* 读状态寄存器 1 */
-uint8_t W25Qxx_ReadStatus2(void);                                        /* 读状态寄存器 2 */
-uint8_t W25Qxx_ReadStatus3(void);                                        /* 读状态寄存器 3 */
-void W25Qxx_WriteEnable(void);                                           /* 写使能 */
-void W25Qxx_WriteDisable(void);                                          /* 写禁止 */
-void W25Qxx_WaitBusy(void);                                              /* 等待芯片空闲（默认超时） */
-W25QxxErr_t W25Qxx_Read(uint32_t addr, uint8_t *buf, uint32_t len);      /* 读取数据 */
-W25QxxErr_t W25Qxx_Write(uint32_t addr, uint8_t *buf, uint32_t len);     /* 写入数据（自动处理跨页） */
-W25QxxErr_t W25Qxx_PageWrite(uint32_t addr, uint8_t *buf, uint16_t len); /* 页写入（单次最多256字节） */
-W25QxxErr_t W25Qxx_SectorErase(uint32_t addr);                           /* 扇区擦除（4KB） */
-W25QxxErr_t W25Qxx_BlockErase32K(uint32_t addr);                         /* 块擦除（32KB） */
-W25QxxErr_t W25Qxx_BlockErase64K(uint32_t addr);                         /* 块擦除（64KB） */
-W25QxxErr_t W25Qxx_ChipErase(void);                                      /* 整片擦除 */
-void W25Qxx_PowerDown(void);                                             /* 进入掉电模式 */
-void W25Qxx_WakeUp(void);                                                /* 退出掉电模式 */
-uint8_t W25Qxx_IsBusy(void);                                             /* 查询芯片是否忙碌 */
-uint8_t W25Qxx_IsWriteEnabled(void);                                     /* 查询写使能状态 */
-void W25Qxx_Example(void);                                               /* 使用示例 */
+W25QXXErr_t W25QXX_Init(void);                                               /* 初始化（验证芯片ID） */
+void W25QXX_GetInfo(W25QXXInfo_t *info);                                     /* 获取芯片信息 */
+uint32_t W25QXX_ReadID(void);                                                /* 读取 JEDEC ID（SPI 失败返回 0） */
+uint8_t W25QXX_ReadStatus1(void);                                            /* 读状态寄存器 1（SPI 失败返回 0xFF） */
+uint8_t W25QXX_ReadStatus2(void);                                            /* 读状态寄存器 2（SPI 失败返回 0xFF） */
+uint8_t W25QXX_ReadStatus3(void);                                            /* 读状态寄存器 3（SPI 失败返回 0xFF） */
+W25QXXErr_t W25QXX_WriteEnable(void);                                        /* 写使能 */
+W25QXXErr_t W25QXX_WriteDisable(void);                                       /* 写禁止 */
+W25QXXErr_t W25QXX_WaitBusy(void);                                           /* 等待芯片空闲（默认超时） */
+W25QXXErr_t W25QXX_Read(uint32_t addr, uint8_t *buf, uint32_t len);          /* 读取数据 */
+W25QXXErr_t W25QXX_Write(uint32_t addr, uint8_t *buf, uint32_t len);         /* 写入数据（自动处理跨页） */
+W25QXXErr_t W25QXX_PageWrite(uint32_t addr, uint8_t *buf, uint16_t len);     /* 页写入（单次最多256字节） */
+W25QXXErr_t W25QXX_SectorErase(uint32_t addr);                               /* 扇区擦除（4KB） */
+W25QXXErr_t W25QXX_BlockErase32K(uint32_t addr);                             /* 块擦除（32KB） */
+W25QXXErr_t W25QXX_BlockErase64K(uint32_t addr);                             /* 块擦除（64KB） */
+W25QXXErr_t W25QXX_ChipErase(void);                                          /* 整片擦除 */
+W25QXXErr_t W25QXX_PowerDown(void);                                          /* 进入掉电模式 */
+W25QXXErr_t W25QXX_WakeUp(void);                                             /* 退出掉电模式 */
+uint8_t W25QXX_IsBusy(void);                                                 /* 查询芯片是否忙碌 */
+uint8_t W25QXX_IsWriteEnabled(void);                                         /* 查询写使能状态 */
+void W25QXX_Example(void);                                                   /* 使用示例 */
 
 #endif /* __W25QXX_H */
