@@ -6,7 +6,7 @@ void Uart_Printf(const char *fmt, ...)
 
 }
 
-void uart_send(void *argument)
+void Uart_Send(void *argument)
 {
     for (;;)
     {
@@ -14,7 +14,7 @@ void uart_send(void *argument)
     }
 }
 
-void uart_recv(void *argument)
+void Uart_Recv(void *argument)
 {
     for (;;)
     {

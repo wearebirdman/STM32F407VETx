@@ -6,6 +6,6 @@
 #include "main.h"
 #include "cmsis_os.h"
 
-void lcd_disp(void *argument);
+void Lcd_Disp(void *argument);
 
 #endif
