@@ -3,7 +3,7 @@
 /* 8拍半步通电序列
  * 8拍模式（A-AB-B-BC-C-CD-D-DA），精度比4拍高1倍
  * 每行对应 {IN1, IN2, IN3, IN4} 的电平 */
-static const uint8_t s_step_sequence[8][4] = {
+static const uint8_t s_StepSequence[8][4] = {
     {1, 0, 0, 0},   /* A  */
     {1, 1, 0, 0},   /* AB */
     {0, 1, 0, 0},   /* B  */
@@ -17,7 +17,7 @@ static const uint8_t s_step_sequence[8][4] = {
 /* 初始化 */
 void StepMotor_Init(StepMotor_t *motor)
 {
-    if (motor == 0)
+    if (motor == NULL)
         return;
 
     motor->dir  = STEPMOTOR_DIR_STOP;
@@ -33,26 +33,26 @@ void StepMotor_Init(StepMotor_t *motor)
 /* 设置步序 */
 void StepMotor_SetStep(StepMotor_t *motor, uint8_t step)
 {
-    if (motor == 0 || step > 7)
+    if (motor == NULL || step > 7)
         return;
 
     motor->step = step;
 
     HAL_GPIO_WritePin(STEPMOTOR_IN1_PORT, STEPMOTOR_IN1_PIN,
-                      s_step_sequence[step][0] ? GPIO_PIN_SET : GPIO_PIN_RESET);
+                      s_StepSequence[step][0] ? GPIO_PIN_SET : GPIO_PIN_RESET);
     HAL_GPIO_WritePin(STEPMOTOR_IN2_PORT, STEPMOTOR_IN2_PIN,
-                      s_step_sequence[step][1] ? GPIO_PIN_SET : GPIO_PIN_RESET);
+                      s_StepSequence[step][1] ? GPIO_PIN_SET : GPIO_PIN_RESET);
     HAL_GPIO_WritePin(STEPMOTOR_IN3_PORT, STEPMOTOR_IN3_PIN,
-                      s_step_sequence[step][2] ? GPIO_PIN_SET : GPIO_PIN_RESET);
+                      s_StepSequence[step][2] ? GPIO_PIN_SET : GPIO_PIN_RESET);
     HAL_GPIO_WritePin(STEPMOTOR_IN4_PORT, STEPMOTOR_IN4_PIN,
-                      s_step_sequence[step][3] ? GPIO_PIN_SET : GPIO_PIN_RESET);
+                      s_StepSequence[step][3] ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 
 /* 转动指定步数 */
 void StepMotor_RunSteps(StepMotor_t *motor, StepMotorDir_t direction,
                         uint32_t steps, uint16_t delay_ms)
 {
-    if (motor == 0 || direction == STEPMOTOR_DIR_STOP || steps == 0)
+    if (motor == NULL || direction == STEPMOTOR_DIR_STOP || steps == 0)
         return;
 
     motor->dir = direction;
@@ -86,7 +86,7 @@ void StepMotor_RunAngle(StepMotor_t *motor, StepMotorDir_t direction,
 /* 立即停止 */
 void StepMotor_Stop(StepMotor_t *motor)
 {
-    if (motor == 0)
+    if (motor == NULL)
         return;
 
     motor->dir = STEPMOTOR_DIR_STOP;
@@ -100,7 +100,7 @@ void StepMotor_Stop(StepMotor_t *motor)
 /* 获取当前步序 */
 uint8_t StepMotor_GetStep(StepMotor_t *motor)
 {
-    if (motor == 0)
+    if (motor == NULL)
         return 0;
     return motor->step;
 }

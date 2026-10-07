@@ -5,8 +5,7 @@
 
 /* 增量式PID
  * 输出为控制量增量Δu，适用于舵机角度、步进电机位置等积分型执行器 */
-typedef struct
-{
+typedef struct {
     float kp;             /* 比例增益 */
     float ki;             /* 积分增益 */
     float kd;             /* 微分增益 */
@@ -20,8 +19,7 @@ typedef struct
 
 /* 位置式PID
  * 输出为控制量绝对值u，适用于直流电机调速、加热器占空比等 */
-typedef struct
-{
+typedef struct {
     float kp;             /* 比例增益 */
     float ki;             /* 积分增益 */
     float kd;             /* 微分增益 */

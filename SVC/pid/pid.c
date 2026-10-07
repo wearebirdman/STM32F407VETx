@@ -7,7 +7,7 @@
  * 调用后需手动设置kp/ki/kd/output_max，其余可用默认值 */
 void PidInc_Init(PidInc_t *pid)
 {
-    if (pid == 0)
+    if (pid == NULL)
         return;
 
     pid->kp           = 0.0f;
@@ -26,7 +26,7 @@ void PidInc_Init(PidInc_t *pid)
  * 公式: Δu = Kp·[e(k)-e(k-1)] + Ki·e(k) + Kd·[e(k)-2e(k-1)+e(k-2)] */
 float PidInc_Calc(PidInc_t *pid, float target, float actual)
 {
-    if (pid == 0)
+    if (pid == NULL)
         return 0.0f;
 
     float ek = actual - target;
@@ -64,7 +64,7 @@ float PidInc_Calc(PidInc_t *pid, float target, float actual)
 /* 增量式PID复位（清除误差历史，保留参数） */
 void PidInc_Reset(PidInc_t *pid)
 {
-    if (pid == 0)
+    if (pid == NULL)
         return;
     pid->ek  = 0.0f;
     pid->ek1 = 0.0f;
@@ -76,7 +76,7 @@ void PidInc_Reset(PidInc_t *pid)
 /* 位置式PID初始化 */
 void PidPos_Init(PidPos_t *pid)
 {
-    if (pid == 0)
+    if (pid == NULL)
         return;
 
     pid->kp           = 0.0f;
@@ -95,7 +95,7 @@ void PidPos_Init(PidPos_t *pid)
  * 公式: u = Kp·e(k) + Ki·Σe(i) + Kd·[e(k)-e(k-1)] */
 float PidPos_Calc(PidPos_t *pid, float target, float actual)
 {
-    if (pid == 0)
+    if (pid == NULL)
         return 0.0f;
 
     float ek = actual - target;
@@ -141,7 +141,7 @@ float PidPos_Calc(PidPos_t *pid, float target, float actual)
 /* 位置式PID复位（清除积分和误差历史，保留参数） */
 void PidPos_Reset(PidPos_t *pid)
 {
-    if (pid == 0)
+    if (pid == NULL)
         return;
     pid->ek       = 0.0f;
     pid->ek1      = 0.0f;

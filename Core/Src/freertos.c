@@ -118,10 +118,10 @@ const osMessageQueueAttr_t q_UartRx_attributes = {
 
 void StartDefaultTask(void *argument);
 void lcd_disp(void *argument);
-void led_disp(void *argument);
-void key_proc(void *argument);
-void uart_send(void *argument);
-void uart_recv(void *argument);
+void Led_Disp(void *argument);
+void Key_Proc(void *argument);
+void Uart_Send(void *argument);
+void Uart_Recv(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -169,16 +169,16 @@ void MX_FREERTOS_Init(void) {
   t_lcd_dispHandle = osThreadNew(lcd_disp, NULL, &t_lcd_disp_attributes);
 
   /* creation of t_led_disp */
-  t_led_dispHandle = osThreadNew(led_disp, NULL, &t_led_disp_attributes);
+  t_led_dispHandle = osThreadNew(Led_Disp, NULL, &t_led_disp_attributes);
 
   /* creation of t_key_proc */
-  t_key_procHandle = osThreadNew(key_proc, NULL, &t_key_proc_attributes);
+  t_key_procHandle = osThreadNew(Key_Proc, NULL, &t_key_proc_attributes);
 
   /* creation of t_uart_send */
-  t_uart_sendHandle = osThreadNew(uart_send, NULL, &t_uart_send_attributes);
+  t_uart_sendHandle = osThreadNew(Uart_Send, NULL, &t_uart_send_attributes);
 
   /* creation of t_uart_recv */
-  t_uart_recvHandle = osThreadNew(uart_recv, NULL, &t_uart_recv_attributes);
+  t_uart_recvHandle = osThreadNew(Uart_Recv, NULL, &t_uart_recv_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -234,15 +234,15 @@ __weak void lcd_disp(void *argument)
 * @retval None
 */
 /* USER CODE END Header_led_disp */
-__weak void led_disp(void *argument)
+__weak void Led_Disp(void *argument)
 {
-  /* USER CODE BEGIN led_disp */
+  /* USER CODE BEGIN Led_Disp */
   /* Infinite loop */
   for(;;)
   {
     osDelay(1);
   }
-  /* USER CODE END led_disp */
+  /* USER CODE END Led_Disp */
 }
 
 /* USER CODE BEGIN Header_key_proc */
@@ -252,15 +252,15 @@ __weak void led_disp(void *argument)
 * @retval None
 */
 /* USER CODE END Header_key_proc */
-__weak void key_proc(void *argument)
+__weak void Key_Proc(void *argument)
 {
-  /* USER CODE BEGIN key_proc */
+  /* USER CODE BEGIN Key_Proc */
   /* Infinite loop */
   for(;;)
   {
     osDelay(1);
   }
-  /* USER CODE END key_proc */
+  /* USER CODE END Key_Proc */
 }
 
 /* USER CODE BEGIN Header_uart_send */
@@ -270,15 +270,15 @@ __weak void key_proc(void *argument)
 * @retval None
 */
 /* USER CODE END Header_uart_send */
-__weak void uart_send(void *argument)
+__weak void Uart_Send(void *argument)
 {
-  /* USER CODE BEGIN uart_send */
+  /* USER CODE BEGIN Uart_Send */
   /* Infinite loop */
   for(;;)
   {
     osDelay(1);
   }
-  /* USER CODE END uart_send */
+  /* USER CODE END Uart_Send */
 }
 
 /* USER CODE BEGIN Header_uart_recv */
@@ -288,15 +288,15 @@ __weak void uart_send(void *argument)
 * @retval None
 */
 /* USER CODE END Header_uart_recv */
-__weak void uart_recv(void *argument)
+__weak void Uart_Recv(void *argument)
 {
-  /* USER CODE BEGIN uart_recv */
+  /* USER CODE BEGIN Uart_Recv */
   /* Infinite loop */
   for(;;)
   {
     osDelay(1);
   }
-  /* USER CODE END uart_recv */
+  /* USER CODE END Uart_Recv */
 }
 
 /* Private application code --------------------------------------------------*/

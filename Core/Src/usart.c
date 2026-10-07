@@ -21,11 +21,12 @@
 #include "usart.h"
 
 /* USER CODE BEGIN 0 */
-#include "stdio.h"
-#include "string.h"
-#include "uart_task.h"          /* UartRxMsg_t / q_UartRxHandle */
+#include "uart_task.h"  /* UartRxMsg_t / q_UartRxHandle */
 
-uint8_t rx1_buf[256];
+#include <stdio.h>
+#include <string.h>
+
+static uint8_t s_Rx1Buf[256];
 /* USER CODE END 0 */
 
 UART_HandleTypeDef huart1;
@@ -56,14 +57,8 @@ void MX_USART1_UART_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN USART1_Init 2 */
-  /* 若使用普通中断 */
-  //HAL_UART_Receive_IT(&huart1, rx1_buf, 5);
-
-  /* 若使用DMA,(定长接收)，可以配合dma空闲中断使用，接收长度设置为256 */
-  //HAL_UART_Receive_DMA(&huart1, rx1_buf, 5);
-
-  /* 若使用DMA不定长度接收中断 */ 
-  HAL_UARTEx_ReceiveToIdle_DMA(&huart1, rx1_buf, sizeof(rx1_buf));
+  /* DMA 不定长接收 + 空闲中断接收（回调见 HAL_UARTEx_RxEventCallback） */
+  HAL_UARTEx_ReceiveToIdle_DMA(&huart1, s_Rx1Buf, sizeof(s_Rx1Buf));
   __HAL_DMA_DISABLE_IT(&hdma_usart1_rx, DMA_IT_HT);
   /* USER CODE END USART1_Init 2 */
 
@@ -167,13 +162,13 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
     {
       UartRxMsg_t msg;
       if (size > UART_RX_MSG_MAX) size = UART_RX_MSG_MAX;
-      memcpy(msg.data, rx1_buf, size);
+      memcpy(msg.data, s_Rx1Buf, size);
       msg.len = size;
       /* ISR中投队列:超时必须为0(CMSIS-RTOS2内部走FromISR) */
       osMessageQueuePut(q_UartRxHandle, &msg, 0, 0);
     }
     /* 重启下一轮不定长接收 */
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart1, rx1_buf, sizeof(rx1_buf));
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart1, s_Rx1Buf, sizeof(s_Rx1Buf));
     __HAL_DMA_DISABLE_IT(&hdma_usart1_rx, DMA_IT_HT);
   }
 }

@@ -7,8 +7,7 @@
  * y(k) = y(k-1) + alpha * [x(k) - y(k-1)]
  * alpha越小，滤波越强，但滞后越大；alpha=1时无滤波
  * 适用于:温度、电压、IMU等缓变信号去噪 */
-typedef struct
-{
+typedef struct {
     float alpha;     /* 滤波系数（0~1） */
     float y_prev;    /* 上一次输出 */
     uint8_t init;    /* 是否已初始化（首次输入直接作为初值） */
@@ -19,8 +18,7 @@ typedef struct
  * 适用于:去除随机噪声，但窗口越大滞后越大 */
 #define FILTER_AVG_WINDOW_MAX  16   /* 滑动窗口最大长度 */
 
-typedef struct
-{
+typedef struct {
     float buf[FILTER_AVG_WINDOW_MAX];   /* 环形缓冲区 */
     uint8_t size;                        /* 窗口长度（<= FILTER_AVG_WINDOW_MAX） */
     uint8_t index;                       /* 当前写入位置 */
@@ -34,8 +32,7 @@ typedef struct
  * window_size建议为奇数:3/5/7 */
 #define FILTER_MED_WINDOW_MAX  9    /* 中值窗口最大长度 */
 
-typedef struct
-{
+typedef struct {
     float buf[FILTER_MED_WINDOW_MAX];   /* 环形缓冲区 */
     uint8_t size;                        /* 窗口长度（建议奇数） */
     uint8_t index;                       /* 当前写入位置 */

@@ -18,8 +18,8 @@ typedef struct {
 extern osMessageQueueId_t q_UartRxHandle;
 
 /* 函数接口 */
-void uart_send(void *argument);         /* TX属主任务 */
-void uart_recv(void *argument);         /* RX任务：出队→解析云台协议→回包 */
+void Uart_Send(void *argument);         /* TX属主任务 */
+void Uart_Recv(void *argument);         /* RX任务：出队→解析云台协议→回包 */
 void Uart_Printf(const char *fmt, ...); /* printf风格发送 */
 
 #endif /* __UART_TASK_H__ */

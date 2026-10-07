@@ -4,7 +4,7 @@
 
 void FilterLpf_Init(FilterLpf_t *f, float alpha)
 {
-    if (f == 0)
+    if (f == NULL)
         return;
     f->alpha  = alpha;
     f->y_prev = 0.0f;
@@ -13,11 +13,11 @@ void FilterLpf_Init(FilterLpf_t *f, float alpha)
 
 float FilterLpf_Calc(FilterLpf_t *f, float x)
 {
-    if (f == 0)
+    if (f == NULL)
         return x;
 
     /* 首次输入直接作为初值，避免从0开始爬坡 */
-    if (f->init == 0)
+    if (!f->init)
     {
         f->y_prev = x;
         f->init   = 1;
@@ -33,7 +33,7 @@ float FilterLpf_Calc(FilterLpf_t *f, float x)
 
 void FilterAvg_Init(FilterAvg_t *f, uint8_t window_size)
 {
-    if (f == 0)
+    if (f == NULL)
         return;
     if (window_size == 0)
         window_size = 1;
@@ -50,7 +50,7 @@ void FilterAvg_Init(FilterAvg_t *f, uint8_t window_size)
 
 float FilterAvg_Calc(FilterAvg_t *f, float x)
 {
-    if (f == 0)
+    if (f == NULL)
         return x;
 
     if (f->count < f->size)
@@ -77,7 +77,7 @@ float FilterAvg_Calc(FilterAvg_t *f, float x)
 
 void FilterMed_Init(FilterMed_t *f, uint8_t window_size)
 {
-    if (f == 0)
+    if (f == NULL)
         return;
     if (window_size == 0)
         window_size = 1;
@@ -93,7 +93,7 @@ void FilterMed_Init(FilterMed_t *f, uint8_t window_size)
 
 float FilterMed_Calc(FilterMed_t *f, float x)
 {
-    if (f == 0)
+    if (f == NULL)
         return x;
 
     /* 写入新值 */
