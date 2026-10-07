@@ -39,6 +39,9 @@ targets:
         - BSP/lcd
         - BSP/led
         - BSP/w25qxx
+        - APP/bootloader/bl_core
+        - APP/bootloader/bl_param
+        - APP/bootloader/bl_serialport
       libList: []
     excludeList: []
     settings:
