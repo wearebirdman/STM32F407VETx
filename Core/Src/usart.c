@@ -55,15 +55,8 @@ void MX_USART1_UART_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN USART1_Init 2 */
-  /* 若使用普通中断 */
-  //HAL_UART_Receive_IT(&huart1, rx1_buf, 5);
-
-  /* 若使用DMA,(定长接收)，可以配合dma空闲中断使用，接收长度设置为256 */
-  //HAL_UART_Receive_DMA(&huart1, rx1_buf, 5);
-
-  /* 若使用DMA不定长度接收中断 */ 
-  HAL_UARTEx_ReceiveToIdle_DMA(&huart1, rx1_buf, sizeof(rx1_buf));
-  __HAL_DMA_DISABLE_IT(&hdma_usart1_rx, DMA_IT_HT);
+  /* Bootloader 使用阻塞式 HAL_UART_Transmit/Receive 进行 Ymodem 传输，
+   * 不启动 DMA+Idle 接收，避免与阻塞模式冲突。 */
   /* USER CODE END USART1_Init 2 */
 
 }

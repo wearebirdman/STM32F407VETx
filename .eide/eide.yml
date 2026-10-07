@@ -8,7 +8,6 @@ srcDirs:
   - BSP
   - Core
   - Drivers
-  - Middlewares
 virtualFolder:
   name: <virtual_root>
   files: []
@@ -34,19 +33,12 @@ targets:
         - Drivers/CMSIS/Include
         - Drivers/STM32F4xx_HAL_Driver/Inc
         - Drivers/STM32F4xx_HAL_Driver/Inc/Legacy
-        - Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2
-        - Middlewares/Third_Party/FreeRTOS/Source/include
-        - Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F
+        - APP/bootloader
         - BSP/at24cxx
         - BSP/key
         - BSP/lcd
         - BSP/led
-        - BSP/touch
         - BSP/w25qxx
-        - APP/key
-        - APP/lcd
-        - APP/led
-        - APP/uart
       libList: []
     excludeList: []
     settings:

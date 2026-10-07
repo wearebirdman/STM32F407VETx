@@ -27,7 +27,12 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "key.h"
+#include "lcd.h"
+#include "led.h"
+#include "bl_param.h"
+#include "bl_jump.h"
+#include "bl_update_uart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -59,6 +64,101 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+/* 界面布局常量（128x160竖屏） */
+#define UI_TX       14
+#define UI_TY       10
+#define UI_STAT_Y   96          /* 状态文字行 */
+#define UI_BAR_X    8
+#define UI_BAR_Y    126
+#define UI_BAR_W    112
+#define UI_BAR_H    10
+
+static KeyMsg_t s_key_msg;
+static uint32_t s_bl_cmd;
+
+/* 主菜单界面 */
+static void Menu_Show(void)
+{
+    Lcd_Clear(LCD_BLACK);
+    Lcd_ShowString(UI_TX, 8, "BOOTLOADER", LCD_YELLOW, LCD_BLACK, 16);
+    Lcd_DrawLine(6, 26, 122, 26, LCD_BLUE);
+    Lcd_ShowString(10, 40, "WKUP  Jump APP", LCD_WHITE, LCD_BLACK, 12);
+    Lcd_ShowString(10, 62, "KEY1  UART Upd", LCD_WHITE, LCD_BLACK, 12);
+    Lcd_ShowString(10, 140, "v1.0", LCD_GRAY, LCD_BLACK, 12);
+}
+
+/* 升级进度回调
+ *   total < 600  视为"等待倒计时"（单位秒），received为剩余秒数
+ *   否则为字节进度，绘制百分比+进度条 */
+static void Bl_Prog(uint32_t received, uint32_t total, void *ctx)
+{
+    (void)ctx;
+    if (total < 600U)                    /* 连接倒计时阶段 */
+    {
+        Lcd_Printf(10, UI_STAT_Y, LCD_YELLOW, LCD_BLACK, 12, "Waiting... %lus", received);
+        return;
+    }
+
+    unsigned int pct = total ? (unsigned int)(received * 100U / total) : 0U;
+    if (pct > 100U) pct = 100U;
+    Lcd_Printf(10, UI_STAT_Y, LCD_WHITE, LCD_BLACK, 12, "Writing... %u%%", pct);
+
+    /* 重绘进度条 */
+    Lcd_Fill(UI_BAR_X, UI_BAR_Y, UI_BAR_X + UI_BAR_W, UI_BAR_Y + UI_BAR_H, LCD_BLACK);
+    Lcd_DrawRectangle(UI_BAR_X, UI_BAR_Y, UI_BAR_X + UI_BAR_W, UI_BAR_Y + UI_BAR_H, LCD_BLUE);
+    if (pct > 0U)
+    {
+        uint16_t fill = (uint16_t)((UI_BAR_W - 2U) * pct / 100U);
+        Lcd_Fill(UI_BAR_X + 1, UI_BAR_Y + 1, UI_BAR_X + 1U + fill, UI_BAR_Y + UI_BAR_H - 1U, LCD_GREEN);
+    }
+}
+
+/* 升级结果文字 */
+static const char *Bl_ResultStr(BlUpdStatus_t st)
+{
+    switch (st)
+    {
+        case BL_UPD_OK:           return "Upgrade OK";
+        case BL_UPD_ERR_OPEN:     return "ERR: open source";
+        case BL_UPD_ERR_HEADER:   return "ERR: bad header";
+        case BL_UPD_ERR_SIZE:     return "ERR: size";
+        case BL_UPD_ERR_CRC:      return "ERR: CRC";
+        case BL_UPD_ERR_FLASH:    return "ERR: flash";
+        case BL_UPD_ERR_ABORT:    return "ERR: aborted";
+        case BL_UPD_ERR_TIMEOUT:  return "ERR: timeout";
+        case BL_UPD_ERR_PROTO:    return "ERR: protocol";
+        case BL_UPD_ERR_PARAM:    return "ERR: param";
+        default:                  return "ERR: unknown";
+    }
+}
+
+/* 结果界面：成功绿色SUCCESS，失败红色FAILED+原因 */
+static void Show_Result(BlUpdStatus_t st, const char *title)
+{
+    uint16_t fg = (st == BL_UPD_OK) ? LCD_GREEN : LCD_RED;
+    Lcd_Clear(LCD_BLACK);
+    Lcd_ShowString(UI_TX, UI_TY, title, LCD_YELLOW, LCD_BLACK, 16);
+    Lcd_ShowString(UI_TX, 46, (st == BL_UPD_OK) ? "SUCCESS!" : "FAILED", fg, LCD_BLACK, 16);
+    Lcd_ShowString(10, 80, Bl_ResultStr(st), LCD_WHITE, LCD_BLACK, 12);
+    if (st == BL_UPD_OK)
+        Lcd_ShowString(10, 120, "Jumping to APP...", LCD_GRAY, LCD_BLACK, 12);
+    else
+        Lcd_ShowString(10, 120, "Press KEY1 back", LCD_GRAY, LCD_BLACK, 12);
+}
+
+/* 等待指定按键短按 */
+static void Wait_Key(uint8_t id)
+{
+    KeyMsg_t m;
+    for (;;)
+    {
+        m = Key_Scan();
+        if ((m.key_id == id) && (m.event == KEY_EVENT_SHORT_PRESS))
+            break;
+        HAL_Delay(10);
+    }
+}
 
 /* USER CODE END 0 */
 
@@ -98,7 +198,16 @@ int main(void)
   MX_I2C2_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
+  Key_Init();
+  Lcd_Init();
 
+  /* 读参数区命令字：无升级命令且APP有效则直接跳转 */
+  BlParam_ReadCmd(&s_bl_cmd);
+  if ((s_bl_cmd == BL_CMD_NONE) && Bl_AppValid())
+  {
+      Bl_JumpToApp();
+  }
+  Menu_Show();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -108,6 +217,46 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    s_key_msg = Key_Scan();
+    switch (s_key_msg.key_id)
+    {
+      case KEY_WK_ID:
+        if (s_key_msg.event == KEY_EVENT_SHORT_PRESS)
+        {
+          if (Bl_AppValid())
+            Bl_JumpToApp();
+          else
+            Lcd_Printf(10, 130, LCD_WHITE, LCD_BLACK, 12, "No valid APP");
+        }
+        break;
+      case KEY_1_ID:
+        if (s_key_msg.event == KEY_EVENT_SHORT_PRESS)
+        {
+          BlUpdStatus_t st;
+          Lcd_Clear(LCD_BLACK);
+          Lcd_ShowString(UI_TX, UI_TY, "UART Firmware", LCD_YELLOW, LCD_BLACK, 16);
+          Lcd_ShowString(10, 40, "Send FW.BIN via", LCD_GRAY, LCD_BLACK, 12);
+          Lcd_ShowString(10, 56, "KEY1 : Give Up", LCD_WHITE, LCD_BLACK, 12);
+          st = Bl_UpdateUartStart(Bl_Prog, 0);
+          if (st == BL_UPD_OK)
+          {
+            Show_Result(st, "UART Firmware");
+            HAL_Delay(500);
+            if (Bl_AppValid())
+              Bl_JumpToApp();
+          }
+          else
+          {
+            Show_Result(st, "UART Firmware");
+            Wait_Key(KEY_1_ID);
+            Menu_Show();
+          }
+        }
+        break;
+      default:
+        break;
+    }
+    HAL_Delay(10);
   }
   /* USER CODE END 3 */
 }
