@@ -47,6 +47,9 @@ targets:
         - APP/lcd
         - APP/led
         - APP/uart
+        - APP/bootloader
+        - APP/bootloader/bl_app
+        - APP/bootloader/bl_param
       libList: []
     excludeList: []
     settings:
