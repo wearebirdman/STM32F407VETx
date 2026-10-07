@@ -6,9 +6,20 @@
 #include "main.h"
 #include "cmsis_os.h"
 
+/* 串口接收消息：ISR把一帧打包后通过队列传给处理任务 */
+#define UART_RX_MSG_MAX  64       /* 单帧最大长度（M 160 140\n 等远小于此） */
+
+typedef struct {
+    uint8_t  data[UART_RX_MSG_MAX];
+    uint16_t len;
+} UartRxMsg_t;
+
+/* 由freertos.c创建的USART1接收队列 */
+extern osMessageQueueId_t q_UartRxHandle;
+
 /* 函数接口 */
-void uart_send(void *argument);         // TX 属主任务：出队→发硬件→镜像 [Tx] 上屏（uart_task.c）
-void uart_recv(void *argument);         // RX 任务：出队→按 \n 组行→镜像 [Rx] 上屏（uart_task.c）
-void Uart_Printf(const char *fmt, ...); // printf 风格发送：格式化入队，由 uart_send 统一发送（满则丢；收发任务内禁调）
+void uart_send(void *argument);         /* TX属主任务 */
+void uart_recv(void *argument);         /* RX任务：出队→解析云台协议→回包 */
+void Uart_Printf(const char *fmt, ...); /* printf风格发送 */
 
 #endif /* __UART_TASK_H__ */

@@ -23,6 +23,7 @@
 /* USER CODE BEGIN 0 */
 #include "stdio.h"
 #include "string.h"
+#include "uart_task.h"          /* UartRxMsg_t / q_UartRxHandle */
 
 uint8_t rx1_buf[256];
 /* USER CODE END 0 */
@@ -164,7 +165,12 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
   {
     if (size > 0)
     {
-      
+      UartRxMsg_t msg;
+      if (size > UART_RX_MSG_MAX) size = UART_RX_MSG_MAX;
+      memcpy(msg.data, rx1_buf, size);
+      msg.len = size;
+      /* ISR中投队列:超时必须为0(CMSIS-RTOS2内部走FromISR) */
+      osMessageQueuePut(q_UartRxHandle, &msg, 0, 0);
     }
     /* 重启下一轮不定长接收 */
     HAL_UARTEx_ReceiveToIdle_DMA(&huart1, rx1_buf, sizeof(rx1_buf));

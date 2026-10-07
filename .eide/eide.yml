@@ -6,6 +6,7 @@ packDir: .pack/Keil/STM32F4xx_DFP.2.14.0
 srcDirs:
   - APP
   - BSP
+  - SVC
   - Core
   - Drivers
   - Middlewares
@@ -47,6 +48,8 @@ targets:
         - APP/lcd
         - APP/led
         - APP/uart
+        - BSP/servo
+        - BSP/stepmotor
       libList: []
     excludeList: []
     settings:

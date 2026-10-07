@@ -30,6 +30,8 @@
 #include "key.h"
 #include "w25qxx.h"
 #include "at24cxx.h"
+#include "uart_task.h"       /* UartRxMsg_t, q_UartRxHandle */
+#include "servo.h"           /* Servo_Init */
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -103,6 +105,11 @@ osMessageQueueId_t q_KeyMsgHandle;
 const osMessageQueueAttr_t q_KeyMsg_attributes = {
   .name = "q_KeyMsg"
 };
+/* Definitions for q_UartRx */
+osMessageQueueId_t q_UartRxHandle;
+const osMessageQueueAttr_t q_UartRx_attributes = {
+  .name = "q_UartRx"
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -147,6 +154,9 @@ void MX_FREERTOS_Init(void) {
   /* creation of q_KeyMsg */
   q_KeyMsgHandle = osMessageQueueNew (4, sizeof(KeyMsg_t), &q_KeyMsg_attributes);
 
+  /* creation of q_UartRx */
+  q_UartRxHandle = osMessageQueueNew (16, sizeof(UartRxMsg_t), &q_UartRx_attributes);
+
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
@@ -190,6 +200,7 @@ void MX_FREERTOS_Init(void) {
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
+  Servo_Init();
   /* Infinite loop */
   for(;;)
   {
