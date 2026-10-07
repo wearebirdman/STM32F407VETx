@@ -1,7 +1,6 @@
 #include "key_task.h"
 #include "key.h"
 
-/* ========== 任务配置 ========== */
 #define KEY_SCAN_PERIOD_MS  10  /* 按键扫描周期（ms） */
 
 /* 按键任务入口 */

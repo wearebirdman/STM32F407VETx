@@ -58,38 +58,38 @@ const osThreadAttr_t defaultTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
-/* Definitions for t_lcd_disp */
-osThreadId_t t_lcd_dispHandle;
-const osThreadAttr_t t_lcd_disp_attributes = {
-  .name = "t_lcd_disp",
+/* Definitions for t_Lcd_Disp */
+osThreadId_t t_Lcd_DispHandle;
+const osThreadAttr_t t_Lcd_Disp_attributes = {
+  .name = "t_Lcd_Disp",
   .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal,
 };
-/* Definitions for t_led_disp */
-osThreadId_t t_led_dispHandle;
-const osThreadAttr_t t_led_disp_attributes = {
-  .name = "t_led_disp",
+/* Definitions for t_Led_Disp */
+osThreadId_t t_Led_DispHandle;
+const osThreadAttr_t t_Led_Disp_attributes = {
+  .name = "t_Led_Disp",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal,
 };
-/* Definitions for t_key_proc */
-osThreadId_t t_key_procHandle;
-const osThreadAttr_t t_key_proc_attributes = {
-  .name = "t_key_proc",
+/* Definitions for t_Key_Proc */
+osThreadId_t t_Key_ProcHandle;
+const osThreadAttr_t t_Key_Proc_attributes = {
+  .name = "t_Key_Proc",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityAboveNormal,
 };
-/* Definitions for t_uart_send */
-osThreadId_t t_uart_sendHandle;
-const osThreadAttr_t t_uart_send_attributes = {
-  .name = "t_uart_send",
+/* Definitions for t_Uart_Send */
+osThreadId_t t_Uart_SendHandle;
+const osThreadAttr_t t_Uart_Send_attributes = {
+  .name = "t_Uart_Send",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
-/* Definitions for t_uart_recv */
-osThreadId_t t_uart_recvHandle;
-const osThreadAttr_t t_uart_recv_attributes = {
-  .name = "t_uart_recv",
+/* Definitions for t_Uart_Recv */
+osThreadId_t t_Uart_RecvHandle;
+const osThreadAttr_t t_Uart_Recv_attributes = {
+  .name = "t_Uart_Recv",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
@@ -155,20 +155,20 @@ void MX_FREERTOS_Init(void) {
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
-  /* creation of t_lcd_disp */
-  t_lcd_dispHandle = osThreadNew(Lcd_Disp, NULL, &t_lcd_disp_attributes);
+  /* creation of t_Lcd_Disp */
+  t_Lcd_DispHandle = osThreadNew(Lcd_Disp, NULL, &t_Lcd_Disp_attributes);
 
-  /* creation of t_led_disp */
-  t_led_dispHandle = osThreadNew(Led_Disp, NULL, &t_led_disp_attributes);
+  /* creation of t_Led_Disp */
+  t_Led_DispHandle = osThreadNew(Led_Disp, NULL, &t_Led_Disp_attributes);
 
-  /* creation of t_key_proc */
-  t_key_procHandle = osThreadNew(Key_Proc, NULL, &t_key_proc_attributes);
+  /* creation of t_Key_Proc */
+  t_Key_ProcHandle = osThreadNew(Key_Proc, NULL, &t_Key_Proc_attributes);
 
-  /* creation of t_uart_send */
-  t_uart_sendHandle = osThreadNew(Uart_Send, NULL, &t_uart_send_attributes);
+  /* creation of t_Uart_Send */
+  t_Uart_SendHandle = osThreadNew(Uart_Send, NULL, &t_Uart_Send_attributes);
 
-  /* creation of t_uart_recv */
-  t_uart_recvHandle = osThreadNew(Uart_Recv, NULL, &t_uart_recv_attributes);
+  /* creation of t_Uart_Recv */
+  t_Uart_RecvHandle = osThreadNew(Uart_Recv, NULL, &t_Uart_Recv_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -198,13 +198,13 @@ void StartDefaultTask(void *argument)
   /* USER CODE END StartDefaultTask */
 }
 
-/* USER CODE BEGIN Header_lcd_disp */
+/* USER CODE BEGIN Header_Lcd_Disp */
 /**
-* @brief Function implementing the t_lcd_disp thread.
+* @brief Function implementing the t_Lcd_Disp thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_lcd_disp */
+/* USER CODE END Header_Lcd_Disp */
 __weak void Lcd_Disp(void *argument)
 {
   /* USER CODE BEGIN Lcd_Disp */
@@ -216,13 +216,13 @@ __weak void Lcd_Disp(void *argument)
   /* USER CODE END Lcd_Disp */
 }
 
-/* USER CODE BEGIN Header_led_disp */
+/* USER CODE BEGIN Header_Led_Disp */
 /**
-* @brief Function implementing the t_led_disp thread.
+* @brief Function implementing the t_Led_Disp thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_led_disp */
+/* USER CODE END Header_Led_Disp */
 __weak void Led_Disp(void *argument)
 {
   /* USER CODE BEGIN Led_Disp */
@@ -234,13 +234,13 @@ __weak void Led_Disp(void *argument)
   /* USER CODE END Led_Disp */
 }
 
-/* USER CODE BEGIN Header_key_proc */
+/* USER CODE BEGIN Header_Key_Proc */
 /**
-* @brief Function implementing the t_key_proc thread.
+* @brief Function implementing the t_Key_Proc thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_key_proc */
+/* USER CODE END Header_Key_Proc */
 __weak void Key_Proc(void *argument)
 {
   /* USER CODE BEGIN Key_Proc */
@@ -252,13 +252,13 @@ __weak void Key_Proc(void *argument)
   /* USER CODE END Key_Proc */
 }
 
-/* USER CODE BEGIN Header_uart_send */
+/* USER CODE BEGIN Header_Uart_Send */
 /**
-* @brief Function implementing the t_uart_send thread.
+* @brief Function implementing the t_Uart_Send thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_uart_send */
+/* USER CODE END Header_Uart_Send */
 __weak void Uart_Send(void *argument)
 {
   /* USER CODE BEGIN Uart_Send */
@@ -270,13 +270,13 @@ __weak void Uart_Send(void *argument)
   /* USER CODE END Uart_Send */
 }
 
-/* USER CODE BEGIN Header_uart_recv */
+/* USER CODE BEGIN Header_Uart_Recv */
 /**
-* @brief Function implementing the t_uart_recv thread.
+* @brief Function implementing the t_Uart_Recv thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_uart_recv */
+/* USER CODE END Header_Uart_Recv */
 __weak void Uart_Recv(void *argument)
 {
   /* USER CODE BEGIN Uart_Recv */
