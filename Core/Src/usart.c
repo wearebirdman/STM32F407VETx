@@ -21,7 +21,7 @@
 #include "usart.h"
 
 /* USER CODE BEGIN 0 */
-#include "uart_task.h"  /* UartRxMsg_t / q_UartRxHandle */
+#include "uart_task.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -165,7 +165,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
       memcpy(msg.data, s_Rx1Buf, size);
       msg.len = size;
       /* ISR中投队列:超时必须为0(CMSIS-RTOS2内部走FromISR) */
-      osMessageQueuePut(q_UartRxHandle, &msg, 0, 0);
+      osMessageQueuePut(q_Uart1RxMsgHandle, &msg, 0, 0);
     }
     /* 重启下一轮不定长接收 */
     HAL_UARTEx_ReceiveToIdle_DMA(&huart1, s_Rx1Buf, sizeof(s_Rx1Buf));

@@ -15,7 +15,7 @@ typedef struct {
 } UartRxMsg_t;
 
 /* 由freertos.c创建的USART1接收队列 */
-extern osMessageQueueId_t q_UartRxHandle;
+extern osMessageQueueId_t q_Uart1RxMsgHandle;
 
 /* 函数接口 */
 void Uart_Send(void *argument);         /* TX属主任务 */

@@ -62,7 +62,7 @@ void Uart_Recv(void *argument)
 
     for (;;)
     {
-        if (osMessageQueueGet(q_UartRxHandle, &msg, NULL, osWaitForever) != osOK)
+        if (osMessageQueueGet(q_Uart1RxMsgHandle, &msg, NULL, osWaitForever) != osOK)
             continue;
 
         /* 拷贝并保证 \0 结尾 */
